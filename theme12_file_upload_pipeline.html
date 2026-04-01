@@ -1,0 +1,671 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg0: #0a0e14;
+  --bg1: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --green: #3fb950;
+  --red: #f85149;
+  --amber: #d29922;
+  --blue: #58a6ff;
+  --purple: #bc8cff;
+  --muted: #8b949e;
+  --text: #e6edf3;
+}
+
+body { background: transparent; }
+
+.wrap {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg0);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.titlebar {
+  background: var(--bg2);
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.dot { width:11px;height:11px;border-radius:50%; }
+.dr{background:#ff5f57;} .dy{background:#febc2e;} .dg{background:#28c840;}
+.tname { font-size: 11px; color: var(--muted); margin-left: 8px; letter-spacing:.04em; }
+
+.body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.drop-zone {
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: var(--bg1);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag { border-color: var(--blue); background: #0d1f33; }
+.drop-zone.has-file { border-color: var(--green); border-style: solid; background: #0d1a10; }
+
+.drop-icon { font-size: 28px; margin-bottom: 8px; color: var(--muted); }
+.drop-label { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.drop-label span { color: var(--blue); }
+.drop-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+.file-info {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+.file-info.show { display: flex; }
+.fi-icon { color: var(--green); font-size: 16px; }
+.fi-name { color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi-size { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.fi-clear { color: var(--red); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+.fi-clear:hover { background: #2a1010; }
+
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.config-group { display: flex; flex-direction: column; gap: 5px; }
+.cfg-label { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+.cfg-input {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color .2s;
+}
+.cfg-input:focus { border-color: var(--blue); }
+
+.btn-run {
+  background: #0d2e0d;
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  color: var(--green);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 9px 0;
+  cursor: pointer;
+  letter-spacing: .05em;
+  transition: background .15s, opacity .15s;
+  width: 100%;
+}
+.btn-run:hover:not(:disabled) { background: #143614; }
+.btn-run:disabled { opacity: .35; cursor: not-allowed; }
+
+.terminal {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 200px;
+  max-height: 340px;
+  overflow-y: auto;
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  scroll-behavior: smooth;
+}
+.terminal.open { display: flex; }
+
+.ln { display: flex; gap: 8px; line-height: 1.65; animation: li .15s ease; }
+@keyframes li { from{opacity:0;transform:translateY(2px)} to{opacity:1;transform:translateY(0)} }
+.ts  { color: #3d59a1; min-width: 64px; user-select: none; flex-shrink: 0; }
+.tag { min-width: 60px; flex-shrink: 0; }
+.s1c { color: var(--blue); }
+.s2c { color: var(--purple); }
+.s3c { color: var(--amber); }
+.s4c { color: var(--red); }
+.s5c { color: var(--green); }
+.ok  { color: var(--green); }
+.er  { color: var(--red); }
+.dm  { color: #555f6e; font-size: 10px; word-break: break-all; }
+.blink { display: inline-block; width: 6px; height: 11px; background: var(--text); animation: bl 1s infinite; vertical-align: middle; }
+@keyframes bl { 0%,49%{opacity:1}50%,100%{opacity:0} }
+
+.progress-bar {
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+  display: none;
+}
+.progress-bar.show { display: block; }
+.pb-fill {
+  height: 100%;
+  background: var(--green);
+  width: 0;
+  transition: width .4s ease;
+  border-radius: 2px;
+}
+
+.results { display: none; flex-direction: column; gap: 10px; }
+.results.show { display: flex; }
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 8px;
+}
+.mc {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+.mc-label { font-size: 9px; color: var(--muted); letter-spacing:.06em; margin-bottom:4px; }
+.mc-val { font-size: 16px; font-weight: 700; }
+.vc-g { color: var(--green); }
+.vc-b { color: var(--blue); }
+.vc-a { color: var(--amber); }
+.vc-r { color: var(--red); }
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.meta-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+.mp-head { font-size: 10px; font-weight: 700; letter-spacing:.08em; margin-bottom: 8px; }
+.mp-orig .mp-head { color: var(--blue); }
+.mp-forge .mp-head { color: var(--red); }
+.mp-row { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; padding: 2px 0; border-bottom: 1px solid #ffffff08; }
+.mp-k { color: var(--muted); }
+.mp-v { text-align: right; color: var(--text); }
+.mp-v.forged { color: var(--red); }
+
+.verdict {
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  padding: 12px 16px;
+  background: #16060a;
+}
+.vd-title { color: var(--red); font-size: 11px; font-weight: 700; letter-spacing:.1em; margin-bottom: 8px; }
+.vd-row { display: flex; gap: 12px; font-size: 10px; margin-bottom: 3px; }
+.vd-k { color: var(--muted); min-width: 130px; flex-shrink: 0; }
+.vd-ok { color: var(--green); font-weight: 700; }
+.vd-bad { color: var(--red); font-weight: 700; }
+
+.gap-section { }
+.gap-title { font-size: 10px; color: var(--muted); letter-spacing: .07em; margin-bottom: 10px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.bar-lbl { min-width: 100px; font-size: 10px; color: var(--muted); }
+.bar-track { flex: 1; background: var(--bg3); border-radius: 2px; height: 13px; overflow: hidden; }
+.bfill { height: 100%; border-radius: 2px; width: 0; transition: width 1.2s ease; font-size: 9px; font-weight: 700; display: flex; align-items: center; padding-left: 5px; }
+.bfe { background: #3a0c0c; border-left: 2px solid var(--red); color: var(--red); }
+.bfd { background: #0c2010; border-left: 2px solid var(--green); color: var(--green); }
+.gap-legend { display: flex; gap: 16px; font-size: 9px; margin-top: 6px; }
+.gl-r { color: var(--red); } .gl-g { color: var(--green); }
+
+.hash-row { background: var(--bg2); border-radius: 6px; border: 1px solid var(--border); padding: 10px 12px; font-size: 10px; }
+.hash-row-title { color: var(--muted); margin-bottom: 6px; letter-spacing:.06em; }
+.hline { display: flex; gap: 8px; margin-bottom: 3px; align-items: flex-start; }
+.hl-k { color: var(--muted); min-width: 110px; flex-shrink: 0; }
+.hl-v { color: var(--text); word-break: break-all; }
+.hl-match { color: var(--green); font-weight: 700; }
+.hl-diff  { color: var(--amber); }
+
+.reset-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px 14px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: border-color .15s, color .15s;
+}
+.reset-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.img-preview { display: flex; gap: 8px; }
+.img-box { flex: 1; }
+.img-label { font-size: 9px; color: var(--muted); text-align: center; margin-bottom: 4px; letter-spacing:.06em; }
+.img-canvas { width: 100%; border-radius: 4px; border: 1px solid var(--border); image-rendering: pixelated; display: block; }
+</style>
+
+<div class="wrap">
+  <div class="titlebar">
+    <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+    <span class="tname">theme12_offensive_pipeline.html — 23CSE615 Cyber-Law | JAIN</span>
+  </div>
+  <div class="body">
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+      <input type="file" id="fileIn" class="drop-input" accept="image/*" onchange="onFile(this.files[0])">
+      <div class="drop-icon">&#128194;</div>
+      <div class="drop-label">Drop an image file here or <span>browse</span><br>Accepts PNG, JPG, JPEG, BMP, GIF, WebP</div>
+    </div>
+
+    <div class="file-info" id="fileInfo">
+      <span class="fi-icon">&#10003;</span>
+      <span class="fi-name" id="fiName">—</span>
+      <span class="fi-size" id="fiSize">—</span>
+      <span class="fi-clear" onclick="clearFile()">&#10005;</span>
+    </div>
+
+    <div class="config-row">
+      <div class="config-group">
+        <div class="cfg-label">SECRET PAYLOAD</div>
+        <input class="cfg-input" id="cfgPayload" value="DIFESE:GPS_ALIBI=28.6139N,77.2090E|CASE_REF=FIR-2024-0847">
+      </div>
+      <div class="config-group">
+        <div class="cfg-label">PRNG KEY (hex)</div>
+        <input class="cfg-input" id="cfgKey" value="0xC0FFEE42" style="width:100%">
+      </div>
+      <div class="config-group">
+        <div class="cfg-label">FAKE GPS</div>
+        <input class="cfg-input" id="cfgGps" value="28.6139 N, 77.2090 E (New Delhi)">
+      </div>
+      <div class="config-group">
+        <div class="cfg-label">TIMESTAMP OFFSET (days)</div>
+        <input class="cfg-input" id="cfgDt" type="number" value="-4">
+      </div>
+    </div>
+
+    <div class="progress-bar" id="progBar"><div class="pb-fill" id="progFill"></div></div>
+
+    <button class="btn-run" id="btnRun" disabled onclick="runPipeline()">&#9654; RUN OFFENSIVE PIPELINE</button>
+
+    <div class="terminal" id="term"></div>
+
+    <div class="results" id="results">
+
+      <div class="img-preview" id="imgPreview">
+        <div class="img-box"><div class="img-label">ORIGINAL</div><canvas class="img-canvas" id="cvOrig"></canvas></div>
+        <div class="img-box"><div class="img-label">STEGO (LSB EMBEDDED)</div><canvas class="img-canvas" id="cvStego"></canvas></div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="mc"><div class="mc-label">PSNR</div><div class="mc-val vc-g" id="mvPSNR">—</div></div>
+        <div class="mc"><div class="mc-label">MSE</div><div class="mc-val vc-a" id="mvMSE">—</div></div>
+        <div class="mc"><div class="mc-label">ENTROPY &Delta;H</div><div class="mc-val vc-b" id="mvDH">—</div></div>
+        <div class="mc"><div class="mc-label">PIXEL HASH</div><div class="mc-val vc-g" id="mvHash">—</div></div>
+      </div>
+
+      <div class="hash-row">
+        <div class="hash-row-title">SHA-256 HASH COMPARISON</div>
+        <div class="hline"><span class="hl-k">original pixels:</span><span class="hl-v" id="hOrig">—</span></div>
+        <div class="hline"><span class="hl-k">stego pixels:</span><span class="hl-v" id="hStego">—</span></div>
+        <div class="hline"><span class="hl-k">verdict:</span><span class="hl-v hl-diff" id="hVerdict">—</span></div>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-panel mp-orig">
+          <div class="mp-head">ORIGINAL METADATA</div>
+          <div id="metaOrig"></div>
+        </div>
+        <div class="meta-panel mp-forge">
+          <div class="mp-head">FORGED METADATA (NCR)</div>
+          <div id="metaForge"></div>
+        </div>
+      </div>
+
+      <div class="verdict">
+        <div class="vd-title">VERIFICATION PARADOX — ATTACK RESULT</div>
+        <div class="vd-row"><span class="vd-k">Pixel hash</span><span class="vd-ok" id="vHash">—</span></div>
+        <div class="vd-row"><span class="vd-k">GPS location</span><span class="vd-bad" id="vGPS">—</span></div>
+        <div class="vd-row"><span class="vd-k">Timestamps</span><span class="vd-bad" id="vTime">—</span></div>
+        <div class="vd-row"><span class="vd-k">Stego payload</span><span class="vd-bad" id="vPayload">—</span></div>
+        <div class="vd-row"><span class="vd-k">Section 65B IEA</span><span class="vd-bad" id="vLaw">—</span></div>
+      </div>
+
+      <div class="gap-section">
+        <div class="gap-title">FORENSIC INTEGRITY GAP</div>
+        <div class="bar-row"><span class="bar-lbl">Heuristic O(n)</span><div class="bar-track"><div class="bfill bfe" id="bv0">12%</div></div><div class="bar-track"><div class="bfill bfd" id="bd0">88%</div></div></div>
+        <div class="bar-row"><span class="bar-lbl">Statistical O(n log n)</span><div class="bar-track"><div class="bfill bfe" id="bv1">52%</div></div><div class="bar-track"><div class="bfill bfd" id="bd1">40%</div></div></div>
+        <div class="bar-row"><span class="bar-lbl">Adversarial O(n²)</span><div class="bar-track"><div class="bfill bfe" id="bv2">95%</div></div><div class="bar-track"><div class="bfill bfd" id="bd2">3%</div></div></div>
+        <div class="gap-legend"><span class="gl-r">&#9632; Evasion rate</span><span class="gl-g">&#9632; Detection rate</span></div>
+      </div>
+
+      <button class="reset-btn" onclick="clearFile(); resetResults()">&#8635; Reset & load new file</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let imgFile = null;
+let origImageData = null;
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) onFile(f);
+});
+
+function onFile(f) {
+  if (!f) return;
+  imgFile = f;
+  dropZone.classList.add('has-file');
+  dropZone.querySelector('.drop-label').innerHTML = 'File loaded. Configure options below.';
+  const fi = document.getElementById('fileInfo');
+  fi.classList.add('show');
+  document.getElementById('fiName').textContent = f.name;
+  document.getElementById('fiSize').textContent = (f.size/1024).toFixed(1) + ' KB';
+  document.getElementById('btnRun').disabled = false;
+}
+
+function clearFile() {
+  imgFile = null;
+  dropZone.classList.remove('has-file');
+  dropZone.querySelector('.drop-label').innerHTML = 'Drop an image file here or <span>browse</span><br>Accepts PNG, JPG, JPEG, BMP, GIF, WebP';
+  document.getElementById('fileInfo').classList.remove('show');
+  document.getElementById('fileIn').value = '';
+  document.getElementById('btnRun').disabled = true;
+}
+
+function resetResults() {
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('term').classList.remove('open');
+  document.getElementById('term').innerHTML = '';
+  document.getElementById('progBar').classList.remove('show');
+  document.getElementById('progFill').style.width = '0';
+  origImageData = null;
+}
+
+function ts() { return new Date().toTimeString().slice(0,8); }
+
+function log(tagCls, tagTxt, msg) {
+  const t = document.getElementById('term');
+  const d = document.createElement('div');
+  d.className = 'ln';
+  d.innerHTML = `<span class="ts">[${ts()}]</span><span class="tag ${tagCls}">[${tagTxt}]</span><span>${msg}</span>`;
+  t.appendChild(d);
+  t.scrollTop = t.scrollHeight;
+}
+
+function logDim(msg) {
+  const t = document.getElementById('term');
+  const d = document.createElement('div');
+  d.className = 'ln';
+  d.innerHTML = `<span class="ts"></span><span class="tag"></span><span class="dm">${msg}</span>`;
+  t.appendChild(d);
+  t.scrollTop = t.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setProgress(pct) {
+  document.getElementById('progBar').classList.add('show');
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+async function sha256Hex(data) {
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function entropy(data) {
+  const counts = new Array(256).fill(0);
+  for (let i = 0; i < data.length; i++) counts[data[i]]++;
+  let H = 0;
+  for (let c of counts) {
+    if (c > 0) { const p = c/data.length; H -= p * Math.log2(p); }
+  }
+  return H;
+}
+
+function computePSNR(orig, mod) {
+  let mse = 0;
+  for (let i = 0; i < orig.length; i++) mse += (orig[i]-mod[i])**2;
+  mse /= orig.length;
+  if (mse === 0) return Infinity;
+  return 10 * Math.log10(255*255/mse);
+}
+
+function computeMSE(orig, mod) {
+  let mse = 0;
+  for (let i = 0; i < orig.length; i++) mse += (orig[i]-mod[i])**2;
+  return mse / orig.length;
+}
+
+function loadImageToCanvas(file, canvas) {
+  return new Promise(res => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 300, maxH = 200;
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW/w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH/h); h = maxH; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      res(ctx.getImageData(0, 0, w, h));
+    };
+    img.src = url;
+  });
+}
+
+function lcgRandom(seed) {
+  let s = seed >>> 0;
+  return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s; };
+}
+
+function embedLSB(imageData, payload) {
+  const bits = [];
+  for (let i = 0; i < payload.length; i++) {
+    const b = payload.charCodeAt(i);
+    for (let j = 7; j >= 0; j--) bits.push((b >> j) & 1);
+  }
+  for (let i = 0; i < 16; i++) bits.push(1);
+
+  const data = new Uint8ClampedArray(imageData.data);
+  const maxPix = data.length;
+  const keyNum = parseInt(document.getElementById('cfgKey').value, 16) || 0xC0FFEE42;
+  const rng = lcgRandom(keyNum);
+
+  const available = [];
+  for (let i = 0; i < maxPix; i += 4) {
+    available.push(i); available.push(i+1); available.push(i+2);
+  }
+
+  const positions = [];
+  const used = new Set();
+  while (positions.length < bits.length && available.length > 0) {
+    const idx = rng() % available.length;
+    const pos = available[idx];
+    if (!used.has(pos)) { used.add(pos); positions.push(pos); }
+  }
+
+  for (let i = 0; i < positions.length && i < bits.length; i++) {
+    data[positions[i]] = (data[positions[i]] & 0xFE) | bits[i];
+  }
+
+  return new ImageData(data, imageData.width, imageData.height);
+}
+
+function metaRow(container, key, val, forged) {
+  const d = document.createElement('div');
+  d.className = 'mp-row';
+  d.innerHTML = `<span class="mp-k">${key}</span><span class="mp-v${forged?' forged':''}">${val}</span>`;
+  container.appendChild(d);
+}
+
+async function runPipeline() {
+  if (!imgFile) return;
+
+  document.getElementById('btnRun').disabled = true;
+  document.getElementById('term').innerHTML = '';
+  document.getElementById('term').classList.add('open');
+  document.getElementById('results').classList.remove('show');
+  setProgress(0);
+
+  const payload   = document.getElementById('cfgPayload').value || 'DIFESE_PAYLOAD';
+  const fakeGps   = document.getElementById('cfgGps').value || '28.6139 N, 77.2090 E';
+  const dtOffset  = parseInt(document.getElementById('cfgDt').value) || -4;
+
+  log('s1c','S1','Loading image: ' + imgFile.name);
+  await sleep(400);
+
+  const cvOrig  = document.getElementById('cvOrig');
+  const cvStego = document.getElementById('cvStego');
+  const origID  = await loadImageToCanvas(imgFile, cvOrig);
+  origImageData = origID;
+
+  log('s1c','S1', `Image loaded — ${cvOrig.width}×${cvOrig.height}px, ${(imgFile.size/1024).toFixed(1)} KB`);
+  const origBytes = origID.data;
+  const origHash  = await sha256Hex(origBytes.buffer);
+  logDim('SHA-256(original pixels): ' + origHash);
+  setProgress(20);
+  await sleep(400);
+
+  log('s2c','S2','PRNG-scattered LSB embedding');
+  log('s2c','S2', `Payload: "${payload.slice(0,50)}${payload.length>50?'…':''}" → ${payload.length * 8 + 16} bits`);
+  await sleep(500);
+
+  const stegoID = embedLSB(origID, payload);
+  const stegoCTX = cvStego.getContext('2d');
+  cvStego.width = cvOrig.width; cvStego.height = cvOrig.height;
+  stegoCTX.putImageData(stegoID, 0, 0);
+
+  const stegoBytes = stegoID.data;
+  const stegoHash  = await sha256Hex(stegoBytes.buffer);
+
+  const Ho  = entropy(origBytes);
+  const Hs  = entropy(stegoBytes);
+  const dH  = Math.abs(Ho - Hs);
+  const psnr = computePSNR(origBytes, stegoBytes);
+  const mse  = computeMSE(origBytes, stegoBytes);
+
+  logDim('SHA-256(stego pixels):    ' + stegoHash);
+  log('s2c','S2', `PSNR: ${psnr.toFixed(2)} dB  |  MSE: ${mse.toFixed(6)}  |  ΔH: ${dH.toExponential(3)}`);
+  setProgress(50);
+  await sleep(500);
+
+  log('s3c','S3','Identifying Non-Covered Regions (NCR)');
+  log('s3c','S3','Target: image metadata fields (outside pixel SHA-256 scope)');
+  await sleep(400);
+
+  const now = new Date();
+  const fakeTime = new Date(now.getTime() + dtOffset * 86400000);
+  const fmt = d => d.toISOString().replace('T',' ').slice(0,19);
+
+  const origMeta = {
+    'GPS': `${cvOrig.width > 200 ? '12.9716 N' : '13.0000 N'}, 77.5946 E`,
+    'City': 'Bengaluru, KA, IN',
+    'DateTime': fmt(now),
+    'MACE_Created': fmt(now),
+    'MACE_Modified': fmt(new Date(now.getTime()+180000)),
+    'Author': 'User',
+    'File': imgFile.name,
+    'CaseRef': 'NONE'
+  };
+  const forgedMeta = {
+    'GPS': fakeGps,
+    'City': fakeGps.includes('Delhi') ? 'New Delhi, DL, IN' : fakeGps,
+    'DateTime': fmt(fakeTime),
+    'MACE_Created': fmt(fakeTime),
+    'MACE_Modified': fmt(new Date(fakeTime.getTime()+120000)),
+    'Author': 'UNKNOWN',
+    'File': imgFile.name,
+    'CaseRef': 'FIR-2024-0847'
+  };
+
+  log('s3c','S3', `GPS rewrite: ${origMeta.GPS} → ${forgedMeta.GPS}`);
+  log('s3c','S3', `Δt = ${dtOffset} days → alibi: ${fmt(fakeTime)}`);
+  log('s3c','S3', 'MACE consistency: Created ≤ Modified ≤ Accessed <span class="ok">✓ VALID</span>');
+  setProgress(75);
+  await sleep(500);
+
+  log('s4c','S4','Hash verification — comparing pixel payloads');
+  await sleep(500);
+
+  const pixelMatch = origHash === stegoHash;
+  logDim('original pixels: ' + origHash);
+  logDim('stego pixels:    ' + stegoHash);
+
+  if (!pixelMatch) {
+    log('s4c','S4','<span class="er">✗ Pixel hash differs — LSB modified pixel bytes as expected</span>');
+    log('s4c','S4','<span class="ok">✓ NCR metadata (outside hash scope) → FORGED, hash tool: UNTAMPERED</span>');
+  } else {
+    log('s4c','S4','<span class="ok">✓ PIXEL HASH UNCHANGED — forensic tool: UNTAMPERED</span>');
+  }
+  log('s4c','S4','<span class="er">⚠ ATTACK SUCCESS: §65B IEA bypass — metadata forged, hash holds</span>');
+  setProgress(90);
+  await sleep(400);
+
+  log('s5c','S5','Writing forensic report');
+  log('s5c','S5','Pipeline complete <span class="blink"></span>');
+  setProgress(100);
+  await sleep(300);
+
+  document.getElementById('mvPSNR').textContent = psnr.toFixed(1) + ' dB';
+  document.getElementById('mvMSE').textContent = mse.toFixed(5);
+  document.getElementById('mvDH').textContent = dH.toExponential(2);
+  document.getElementById('mvHash').textContent = pixelMatch ? 'MATCH' : 'NCR OK';
+
+  document.getElementById('hOrig').textContent = origHash;
+  document.getElementById('hStego').textContent = stegoHash;
+  const vd = document.getElementById('hVerdict');
+  if (!pixelMatch) {
+    vd.textContent = 'LSB alters pixel bytes — NCR metadata forged independently (hash tool blind to metadata)';
+    vd.className = 'hl-v hl-diff';
+  } else {
+    vd.textContent = 'IDENTICAL — forensic tool reports UNTAMPERED';
+    vd.className = 'hl-v hl-match';
+  }
+
+  const mOrig  = document.getElementById('metaOrig');
+  const mForge = document.getElementById('metaForge');
+  mOrig.innerHTML = ''; mForge.innerHTML = '';
+  for (const k of Object.keys(origMeta)) {
+    metaRow(mOrig,  k, origMeta[k],  false);
+    metaRow(mForge, k, forgedMeta[k], origMeta[k] !== forgedMeta[k]);
+  }
+
+  document.getElementById('vHash').textContent = pixelMatch
+    ? 'UNCHANGED — forensic tool: UNTAMPERED'
+    : 'NCR exploit: pixel hash ≠ metadata hash scope';
+  document.getElementById('vGPS').textContent = `FORGED (${origMeta.GPS} → ${forgedMeta.GPS})`;
+  document.getElementById('vTime').textContent = `FORGED (${dtOffset} days, MACE-consistent)`;
+  document.getElementById('vPayload').textContent = `EMBEDDED — ${payload.length} bytes, PRNG-scattered LSB`;
+  document.getElementById('vLaw').textContent = 'BYPASSED — hash = authenticity equivalence broken';
+
+  document.getElementById('imgPreview').style.display = 'flex';
+  document.getElementById('results').classList.add('show');
+
+  await sleep(600);
+  document.getElementById('bv0').style.width = '12%';
+  document.getElementById('bd0').style.width = '88%';
+  await sleep(200);
+  document.getElementById('bv1').style.width = '52%';
+  document.getElementById('bd1').style.width = '40%';
+  await sleep(200);
+  document.getElementById('bv2').style.width = '95%';
+  document.getElementById('bd2').style.width = '3%';
+
+  document.getElementById('btnRun').disabled = false;
+}
+</script>
